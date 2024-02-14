@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Analysing hospital building repairs</title>
+
+<script src="site_libs/header-attrs-2.19/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Hospital building repairs</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Trusts A-C
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="AIREDALE-NHS-FOUNDATION-TRUST.html">AIREDALE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="ASHFORD-AND-ST.-PETERS-HOSPITALS-NHS-FOUNDATION-TRUST.html">ASHFORD-AND-ST.-PETERS-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="BARNSLEY-HOSPITAL-NHS-FOUNDATION-TRUST.html">BARNSLEY-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="BARTS-HEALTH-NHS-TRUST.html">BARTS-HEALTH-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="BEDFORDSHIRE-HOSPITALS-NHS-FOUNDATION-TRUST.html">BEDFORDSHIRE-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="BLACKPOOL-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST.html">BLACKPOOL-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="BOLTON-NHS-FOUNDATION-TRUST.html">BOLTON-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="BRADFORD-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST.html">BRADFORD-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="BUCKINGHAMSHIRE-HEALTHCARE-NHS-TRUST.html">BUCKINGHAMSHIRE-HEALTHCARE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="CALDERDALE-AND-HUDDERSFIELD-NHS-FOUNDATION-TRUST.html">CALDERDALE-AND-HUDDERSFIELD-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="CAMBRIDGE-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST.html">CAMBRIDGE-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="CHELSEA-AND-WESTMINSTER-HOSPITAL-NHS-FOUNDATION-TRUST.html">CHELSEA-AND-WESTMINSTER-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="CHESTERFIELD-ROYAL-HOSPITAL-NHS-FOUNDATION-TRUST.html">CHESTERFIELD-ROYAL-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="COUNTESS-OF-CHESTER-HOSPITAL-NHS-FOUNDATION-TRUST.html">COUNTESS-OF-CHESTER-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="COUNTY-DURHAM-AND-DARLINGTON-NHS-FOUNDATION-TRUST.html">COUNTY-DURHAM-AND-DARLINGTON-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="CROYDON-HEALTH-SERVICES-NHS-TRUST.html">CROYDON-HEALTH-SERVICES-NHS-TRUST</a>
+    </li>
+</ul></li></ul><ul class="nav navbar-nav navbar-right"></ul><ul class="nav navbar-nav"><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">D-H<span class="caret"></span></a><ul class="dropdown-menu" role="menu"><li>
+      <a href="DONCASTER-AND-BASSETLAW-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST.html">DONCASTER-AND-BASSETLAW-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="DORSET-COUNTY-HOSPITAL-NHS-FOUNDATION-TRUST.html">DORSET-COUNTY-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="EAST-AND-NORTH-HERTFORDSHIRE-NHS-TRUST.html">EAST-AND-NORTH-HERTFORDSHIRE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="EAST-CHESHIRE-NHS-TRUST.html">EAST-CHESHIRE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="EAST-KENT-HOSPITALS-UNIVERSITY-NHS-FOUNDATION-TRUST.html">EAST-KENT-HOSPITALS-UNIVERSITY-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="EAST-LANCASHIRE-HOSPITALS-NHS-TRUST.html">EAST-LANCASHIRE-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="EAST-SUFFOLK-AND-NORTH-ESSEX-NHS-FOUNDATION-TRUST.html">EAST-SUFFOLK-AND-NORTH-ESSEX-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="EAST-SUSSEX-HEALTHCARE-NHS-TRUST.html">EAST-SUSSEX-HEALTHCARE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="EPSOM-AND-ST-HELIER-UNIVERSITY-HOSPITALS-NHS-TRUST.html">EPSOM-AND-ST-HELIER-UNIVERSITY-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="FRIMLEY-HEALTH-NHS-FOUNDATION-TRUST.html">FRIMLEY-HEALTH-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="GATESHEAD-HEALTH-NHS-FOUNDATION-TRUST.html">GATESHEAD-HEALTH-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="GEORGE-ELIOT-HOSPITAL-NHS-TRUST.html">GEORGE-ELIOT-HOSPITAL-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="GLOUCESTERSHIRE-HOSPITALS-NHS-FOUNDATION-TRUST.html">GLOUCESTERSHIRE-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="GUYS-AND-ST-THOMAS-NHS-FOUNDATION-TRUST.html">GUYS-AND-ST-THOMAS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="HAMPSHIRE-HOSPITALS-NHS-FOUNDATION-TRUST.html">HAMPSHIRE-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="HARROGATE-AND-DISTRICT-NHS-FOUNDATION-TRUST.html">HARROGATE-AND-DISTRICT-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="HOMERTON-UNIVERSITY-HOSPITAL-NHS-FOUNDATION-TRUST.html">HOMERTON-UNIVERSITY-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="HULL-UNIVERSITY-TEACHING-HOSPITALS-NHS-TRUST.html">HULL-UNIVERSITY-TEACHING-HOSPITALS-NHS-TRUST</a>
+    </li>
+</ul></li></ul><ul class="nav navbar-nav navbar-right"></ul><ul class="nav navbar-nav"><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">I-M<span class="caret"></span></a><ul class="dropdown-menu" role="menu"><li>
+      <a href="IMPERIAL-COLLEGE-HEALTHCARE-NHS-TRUST.html">IMPERIAL-COLLEGE-HEALTHCARE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="JAMES-PAGET-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST.html">JAMES-PAGET-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="KETTERING-GENERAL-HOSPITAL-NHS-FOUNDATION-TRUST.html">KETTERING-GENERAL-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="KINGS-COLLEGE-HOSPITAL-NHS-FOUNDATION-TRUST.html">KINGS-COLLEGE-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="KINGSTON-HOSPITAL-NHS-FOUNDATION-TRUST.html">KINGSTON-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="LANCASHIRE-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST.html">LANCASHIRE-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="LEEDS-TEACHING-HOSPITALS-NHS-TRUST.html">LEEDS-TEACHING-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="LIVERPOOL-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST.html">LIVERPOOL-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="LONDON-NORTH-WEST-HEALTHCARE-NHS-TRUST.html">LONDON-NORTH-WEST-HEALTHCARE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="MAIDSTONE-AND-TUNBRIDGE-WELLS-NHS-TRUST.html">MAIDSTONE-AND-TUNBRIDGE-WELLS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="MANCHESTER-UNIVERSITY-NHS-FOUNDATION-TRUST.html">MANCHESTER-UNIVERSITY-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="MEDWAY-NHS-FOUNDATION-TRUST.html">MEDWAY-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="MID-AND-SOUTH-ESSEX-NHS-FOUNDATION-TRUST.html">MID-AND-SOUTH-ESSEX-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="MID-YORKSHIRE-HOSPITALS-NHS-TRUST.html">MID-YORKSHIRE-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="MILTON-KEYNES-HOSPITAL-NHS-FOUNDATION-TRUST.html">MILTON-KEYNES-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+</ul></li></ul><ul class="nav navbar-nav navbar-right"></ul><ul class="nav navbar-nav"><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">N-R<span class="caret"></span></a><ul class="dropdown-menu" role="menu"><li>
+      <a href="NORTH-BRISTOL-NHS-TRUST.html">NORTH-BRISTOL-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTH-CUMBRIA-INTEGRATED-CARE-NHS-FOUNDATION-TRUST.html">NORTH-CUMBRIA-INTEGRATED-CARE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTH-MIDDLESEX-UNIVERSITY-HOSPITAL-NHS-TRUST.html">NORTH-MIDDLESEX-UNIVERSITY-HOSPITAL-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTH-TEES-AND-HARTLEPOOL-NHS-FOUNDATION-TRUST.html">NORTH-TEES-AND-HARTLEPOOL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTH-WEST-ANGLIA-NHS-FOUNDATION-TRUST.html">NORTH-WEST-ANGLIA-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTHAMPTON-GENERAL-HOSPITAL-NHS-TRUST.html">NORTHAMPTON-GENERAL-HOSPITAL-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTHERN-CARE-ALLIANCE-NHS-FOUNDATION-TRUST.html">NORTHERN-CARE-ALLIANCE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTHERN-LINCOLNSHIRE-AND-GOOLE-NHS-FOUNDATION-TRUST.html">NORTHERN-LINCOLNSHIRE-AND-GOOLE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="NORTHUMBRIA-HEALTHCARE-NHS-FOUNDATION-TRUST.html">NORTHUMBRIA-HEALTHCARE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="NOTTINGHAM-UNIVERSITY-HOSPITALS-NHS-TRUST.html">NOTTINGHAM-UNIVERSITY-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="OXFORD-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST.html">OXFORD-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="ROYAL-BERKSHIRE-NHS-FOUNDATION-TRUST.html">ROYAL-BERKSHIRE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="ROYAL-CORNWALL-HOSPITALS-NHS-TRUST.html">ROYAL-CORNWALL-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="ROYAL-DEVON-AND-EXETER-NHS-FOUNDATION-TRUST.html">ROYAL-DEVON-AND-EXETER-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="ROYAL-FREE-LONDON-NHS-FOUNDATION-TRUST.html">ROYAL-FREE-LONDON-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="ROYAL-SURREY-COUNTY-HOSPITAL-NHS-FOUNDATION-TRUST.html">ROYAL-SURREY-COUNTY-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="ROYAL-UNITED-HOSPITALS-BATH-NHS-FOUNDATION-TRUST.html">ROYAL-UNITED-HOSPITALS-BATH-NHS-FOUNDATION-TRUST</a>
+    </li>
+</ul></li></ul><ul class="nav navbar-nav navbar-right"></ul><ul class="nav navbar-nav"><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">S<span class="caret"></span></a><ul class="dropdown-menu" role="menu"><li>
+      <a href="SALISBURY-NHS-FOUNDATION-TRUST.html">SALISBURY-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SANDWELL-AND-WEST-BIRMINGHAM-HOSPITALS-NHS-TRUST.html">SANDWELL-AND-WEST-BIRMINGHAM-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="SHEFFIELD-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST.html">SHEFFIELD-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SHERWOOD-FOREST-HOSPITALS-NHS-FOUNDATION-TRUST.html">SHERWOOD-FOREST-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SHREWSBURY-AND-TELFORD-HOSPITAL-NHS-TRUST.html">SHREWSBURY-AND-TELFORD-HOSPITAL-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="SOMERSET-NHS-FOUNDATION-TRUST.html">SOMERSET-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SOUTH-TEES-HOSPITALS-NHS-FOUNDATION-TRUST.html">SOUTH-TEES-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SOUTH-TYNESIDE-AND-SUNDERLAND-NHS-FOUNDATION-TRUST.html">SOUTH-TYNESIDE-AND-SUNDERLAND-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SOUTH-WARWICKSHIRE-NHS-FOUNDATION-TRUST.html">SOUTH-WARWICKSHIRE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SOUTHPORT-AND-ORMSKIRK-HOSPITAL-NHS-TRUST.html">SOUTHPORT-AND-ORMSKIRK-HOSPITAL-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="ST-GEORGES-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST.html">ST-GEORGES-UNIVERSITY-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="STOCKPORT-NHS-FOUNDATION-TRUST.html">STOCKPORT-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="SURREY-AND-SUSSEX-HEALTHCARE-NHS-TRUST.html">SURREY-AND-SUSSEX-HEALTHCARE-NHS-TRUST</a>
+    </li>
+</ul></li></ul><ul class="nav navbar-nav navbar-right"></ul><ul class="nav navbar-nav"><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">T<span class="caret"></span></a><ul class="dropdown-menu" role="menu"><li>
+      <a href="TAMESIDE-AND-GLOSSOP-INTEGRATED-CARE-NHS-FOUNDATION-TRUST.html">TAMESIDE-AND-GLOSSOP-INTEGRATED-CARE-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-HILLINGDON-HOSPITALS-NHS-FOUNDATION-TRUST.html">THE-HILLINGDON-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-LEWISHAM-AND-GREENWICH-NHS-TRUST.html">THE-LEWISHAM-AND-GREENWICH-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-MID-CHESHIRE-HOSPITALS-NHS-FOUNDATION-TRUST.html">THE-MID-CHESHIRE-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-NEWCASTLE-UPON-TYNE-HOSPITALS-NHS-FOUNDATION-TRUST.html">THE-NEWCASTLE-UPON-TYNE-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-PRINCESS-ALEXANDRA-HOSPITAL-NHS-TRUST.html">THE-PRINCESS-ALEXANDRA-HOSPITAL-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-QUEEN-ELIZABETH-HOSPITAL-KINGS-LYNN-NHS-FOUNDATION-TRUST.html">THE-QUEEN-ELIZABETH-HOSPITAL-KINGS-LYNN-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-ROTHERHAM-NHS-FOUNDATION-TRUST.html">THE-ROTHERHAM-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="THE-ROYAL-WOLVERHAMPTON-NHS-TRUST.html">THE-ROYAL-WOLVERHAMPTON-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="TORBAY-AND-SOUTH-DEVON-HEALTH-CARE-NHS-FOUNDATION-TRUST.html">TORBAY-AND-SOUTH-DEVON-HEALTH-CARE-NHS-FOUNDATION-TRUST</a>
+    </li>
+</ul></li></ul><ul class="nav navbar-nav navbar-right"></ul><ul class="nav navbar-nav"><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">U<span class="caret"></span></a><ul class="dropdown-menu" role="menu"><li>
+      <a href="UNITED-LINCOLNSHIRE-HOSPITALS-NHS-TRUST.html">UNITED-LINCOLNSHIRE-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-COLLEGE-LONDON-NHS-FOUNDATION-TRUST.html">UNIVERSITY-COLLEGE-LONDON-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITAL-OF-NORTH-MIDLANDS-NHS-TRUST.html">UNIVERSITY-HOSPITAL-OF-NORTH-MIDLANDS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITAL-SOUTHAMPTON-NHS-FOUNDATION-TRUST.html">UNIVERSITY-HOSPITAL-SOUTHAMPTON-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-BIRMINGHAM-NHS-FOUNDATION-TRUST.html">UNIVERSITY-HOSPITALS-BIRMINGHAM-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-BRISTOL-AND-WESTON-NHS-FOUNDATION-TRUST.html">UNIVERSITY-HOSPITALS-BRISTOL-AND-WESTON-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-COVENTRY-AND-WARWICKSHIRE-NHS-TRUST.html">UNIVERSITY-HOSPITALS-COVENTRY-AND-WARWICKSHIRE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-DORSET-NHS-FOUNDATION-TRUST.html">UNIVERSITY-HOSPITALS-DORSET-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-OF-DERBY-AND-BURTON-NHS-FOUNDATION-TRUST.html">UNIVERSITY-HOSPITALS-OF-DERBY-AND-BURTON-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-OF-LEICESTER-NHS-TRUST.html">UNIVERSITY-HOSPITALS-OF-LEICESTER-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-OF-MORECAMBE-BAY-NHS-FOUNDATION-TRUST.html">UNIVERSITY-HOSPITALS-OF-MORECAMBE-BAY-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="UNIVERSITY-HOSPITALS-SUSSEX-NHS-FOUNDATION-TRUST.html">UNIVERSITY-HOSPITALS-SUSSEX-NHS-FOUNDATION-TRUST</a>
+    </li>
+</ul></li></ul><ul class="nav navbar-nav navbar-right"></ul><ul class="nav navbar-nav"><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">W-Z<span class="caret"></span></a><ul class="dropdown-menu" role="menu"><li>
+      <a href="WALSALL-HEALTHCARE-NHS-TRUST.html">WALSALL-HEALTHCARE-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="WARRINGTON-AND-HALTON-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST.html">WARRINGTON-AND-HALTON-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="WEST-HERTFORDSHIRE-HOSPITALS-NHS-TRUST.html">WEST-HERTFORDSHIRE-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="WEST-SUFFOLK-NHS-FOUNDATION-TRUST.html">WEST-SUFFOLK-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="WHITTINGTON-HEALTH-NHS-TRUST.html">WHITTINGTON-HEALTH-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="WIRRAL-UNIVERSITY-TEACHING-HOSPITAL-NHS-FOUNDATION-TRUST.html">WIRRAL-UNIVERSITY-TEACHING-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="WORCESTERSHIRE-ACUTE-HOSPITALS-NHS-TRUST.html">WORCESTERSHIRE-ACUTE-HOSPITALS-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="WRIGHTINGTON,-WIGAN-AND-LEIGH-NHS-FOUNDATION-TRUST.html">WRIGHTINGTON,-WIGAN-AND-LEIGH-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="WYE-VALLEY-NHS-TRUST.html">WYE-VALLEY-NHS-TRUST</a>
+    </li>
+    <li>
+      <a href="YEOVIL-DISTRICT-HOSPITAL-NHS-FOUNDATION-TRUST.html">YEOVIL-DISTRICT-HOSPITAL-NHS-FOUNDATION-TRUST</a>
+    </li>
+    <li>
+      <a href="YORK-AND-SCARBOROUGH-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST.html">YORK-AND-SCARBOROUGH-TEACHING-HOSPITALS-NHS-FOUNDATION-TRUST</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+
+</div>
+
+
+
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+<title>
+01templateBYTRUST.knit
+</title>
+<script src="libs/header-attrs-2.19/header-attrs.js"></script>
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<script src="libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="libs/navigation-1.1/tabsets.js"></script>
+<link href="libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="libs/htmlwidgets-1.6.1/htmlwidgets.js"></script>
+<link href="libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet" />
+<script src="libs/datatables-binding-0.27/datatables.js"></script>
+<link href="libs/dt-core-bootstrap-1.12.1/css/dataTables.bootstrap.min.css" rel="stylesheet" />
+<link href="libs/dt-core-bootstrap-1.12.1/css/dataTables.bootstrap.extra.css" rel="stylesheet" />
+<script src="libs/dt-core-bootstrap-1.12.1/js/jquery.dataTables.min.js"></script>
+<script src="libs/dt-core-bootstrap-1.12.1/js/dataTables.bootstrap.min.js"></script>
+<link href="libs/nouislider-7.0.10/jquery.nouislider.min.css" rel="stylesheet" />
+<script src="libs/nouislider-7.0.10/jquery.nouislider.min.js"></script>
+<link href="libs/selectize-0.12.0/selectize.bootstrap3.css" rel="stylesheet" />
+<script src="libs/selectize-0.12.0/selectize.min.js"></script>
+<link href="libs/crosstalk-1.2.0/css/crosstalk.min.css" rel="stylesheet" />
+<script src="libs/crosstalk-1.2.0/js/crosstalk.min.js"></script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QE0LKSXVLK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-QE0LKSXVLK');
+</script>
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+<!-- tabsets -->
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+<!-- code folding -->
+</head>
+<body>
+<div class="container-fluid main-container">
+<div id="header">
+
+
+
+<h1 class="title toc-ignore"><p><img
+src="https://raw.githubusercontent.com/sduiopc/test1/branch1/LNP%20Header-01.jpg"
+style="width:40.0%" align="right" /><br />
+“Hospitals’ high risk repair bill up by over a quarter”</p></h1>
+
+</div>
+
+
+<div id="rights-of-replies-from-nhs-trusts" class="section level2">
+<h2>Rights-of-replies from NHS trusts</h2>
+<div
+id="imperial-college-healthcare-nhs-trust-had-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-according-to-the-most-recent-figures."
+class="section level4">
+<h4><strong>IMPERIAL COLLEGE HEALTHCARE NHS TRUST</strong> had the
+largest high-risk repairs backlog in 2022-23 (filtered to general acute
+hospitals only) according to the most recent figures.</h4>
+<p><strong>Eric Munro</strong>, director of estates and facilities at
+the trust, said: “Much of our estate pre-dates the NHS – some of our
+buildings are nearly 180 years old. We spend around £25 million a year
+just to deal with the highest risk maintenance issues so that we can
+stay operational and keep everyone safe.</p>
+<p>“The only realistic way of properly addressing the maintenance
+backlog is through the redevelopment of our sites, with a full rebuild
+of St Mary’s Hospital in Paddington our most pressing need. All three of
+our main hospitals are included in the Government’s New Hospital
+Programme and we are doing all we can to accelerate our schemes.”</p>
+<p>Additional background information for editors:</p>
+<ul>
+<li>We have not identified any issues related to reinforced autoclaved
+aerated concrete (RAAC).</li>
+<li>Examples of high risk backlog: replacing and updating heating,
+ventilation and power systems, lifts and building fabric (such as roof,
+walls and floors etc) and upgrading electrical supplies. Much of this
+infrastructure is past its recommended life span but is required to meet
+growing demand and new technologies.</li>
+<li>For more details about our redevelopment plans, including the need:
+St Mary’s <a href="https://www.imperial.nhs.uk/st-marys-development"
+class="uri">https://www.imperial.nhs.uk/st-marys-development</a>; our
+three main sites <a
+href="https://www.imperial.nhs.uk/about-us/building-better-hospitals"
+class="uri">https://www.imperial.nhs.uk/about-us/building-better-hospitals</a></li>
+</ul>
+</div>
+<div
+id="the-queen-elizabeth-hospital-kings-lynn-nhs-foundation-trust-was-among-the-10-trusts-with-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4><strong>THE QUEEN ELIZABETH HOSPITAL KING’S LYNN NHS FOUNDATION
+TRUST</strong> was among the 10 trusts with the largest high-risk
+repairs backlog in 2022-23 (filtered to general acute hospitals only)
+according to the most recent, published figures.</h4>
+<p><strong>Paul Brooks</strong>, Director of Estates and Facilities at
+the Queen Elizabeth Hospital King’s Lynn NHS Foundation Trust, said:
+“The QEH is a Reinforced Autoclaved Aerated Concrete (RAAC) hospital,
+and we continue to invest national capital funding to maximise the
+safety the Trust’s current building. Working with a skilled engineering
+team, we have implemented an intense installation programme over the
+past two years to create a steel and support structure to maintain the
+safety of the roof, for our patients, visitors and staff.</p>
+<p>“We appreciate it can be disconcerting for our patients and visitors
+when they see building work taking place - teams across the Trust are
+doing their utmost to keep disruption to a minimum. In May 2023 the
+Government announced that the QEH had been added to New Hospital
+Programme so as a Trust we are working at pace with enabling work to
+bring a new hospital to King’s Lynn and West Norfolk by 2030.”</p>
+<p><strong>In response to Rebecca’s experience, Paul Brooks, Director of
+Estates and Facilities at the Queen Elizabeth Hospital King’s Lynn NHS
+Foundation Trust, said:</strong></p>
+<p>“We continue our rolling Reinforced Autoclaved Aerated Concrete
+(RAAC) programme of installing steel and timber support props across the
+hospital to maximise the safety of our buildings for our patients and
+staff. We currently have 3,397 steel and timber support props across the
+Trust. We appreciate these props and the work around the site can be
+unsettling for patients. These measures are proactive steps to maximise
+safety at our hospital. We are working with the national New Hospital
+Programme team who are supporting us to find a long term solution.</p>
+<p>“In January [2023] the Trust suffered a blockage in a drainage system
+near to the West Wing area of the hospital. Our Estates team responded
+immediately to clear the blockage and clean down the area. Monitoring of
+the drainage system is carried out by the Estates team on a daily basis,
+to prevent sewage leaks. Our hospital is in a semi-rural location, with
+several sides surrounded by woodland. We have a local provider
+responsible for our pest control which performs regular visits to audit
+the site and responds on the same day to any reports to take immediate
+action.”</p>
+</div>
+<div
+id="leeds-teaching-hospitals-nhs-trust-was-among-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4><strong>LEEDS TEACHING HOSPITALS NHS TRUST</strong> was among the 10
+trusts with the highest percentage increase in the cost of high-risk
+repairs from 2021-22 to 2022-23, according to the most recent, published
+figures.</h4>
+<p><strong>Craige Richardson</strong>, Director of Estates and
+Facilities, Leeds Teaching Hospitals NHS Trust, said:</p>
+<p>“The Trust, like many organisations across the NHS, has a significant
+maintenance backlog, with large parts of our sites spanning as far back
+as Victorian times. It’s not unusual to see movement when compared year
+on year, especially across such a large/diverse estate.</p>
+<p>“We have recently carried out a full, comprehensive survey of our
+buildings across all sites, and as a result some elements were
+re-graded. A large proportion of this increase was expected, and we have
+plans in place to address it, either through investing in ‘greener
+solutions’ or imminent building disposal.</p>
+<p>“The safety of our patients, visitors and staff remains a priority of
+the Trust.</p>
+<p>“We have plans to halve the overall backlog maintenance at Leeds
+Teaching Hospitals, through a new state-of-the-art hospital on the Leeds
+General Infirmary site . The project is fully funded by the Government,
+and we are currently awaiting the go ahead from the New Hospital
+Programme to start construction. It will provide a new home for Leeds
+Children’s Hospital, a new adults’ hospital and one of the largest
+single-site maternity centres.”</p>
+</div>
+<div
+id="bedfordshire-hospitals-nhs-foundation-trust-was-among-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4><strong>BEDFORDSHIRE HOSPITALS NHS FOUNDATION TRUST</strong> was
+among the 10 trusts with the highest percentage increase in the cost of
+high-risk repairs from 2021-22 to 2022-23, according to the most recent,
+published figures.</h4>
+<p><strong>A spokesperson for Bedfordshire Hospitals NHS Foundation
+Trust answered our questions.</strong></p>
+<p><strong>Q: Referring to your trust, can you tell me how this
+high-risk repair bill has accumulated?</strong></p>
+<p>A: “Our Trust estate is ageing with a number of high and significant
+risks that can no longer proactively be managed. This is due to changes
+in building regulations and compliance requirements, hyper-inflation
+within the construction market, pressure on specialist resourcing in
+terms of skill and capacity, as well as our estates being pushed to the
+limit to support clinical activity, priorities and risk.”</p>
+<p><strong>Q: Can your trust afford to complete these repairs? Have you
+asked for help with these repairs? If so, from whom (eg government) and
+what was the response?</strong></p>
+<p>A: “Our Trust’s backlog stands at £193m and is growing, which we are
+unable to afford to address. These risks are regularly reported via
+local forums and the annual ERIC return. There is national recognition
+that capital funding is inadequate, with limited funding opportunities
+available to address high and significant risk.”</p>
+<p><strong>Q: Should patients be concerned to see these figures? What
+would you say to them?</strong></p>
+<p>A: The figures shown are concerning, however a schedule of high risk
+backlog maintenance is rolled out on an annual basis, focusing on the
+highest risks to clinical service provision.</p>
+<p><strong>Q: What has caused the repair bill to increase by the
+percentage it has at your trust from 2021-22 to 2022-23 – was that down
+to a survey of your buildings in that time period for example? Has the
+discovery of RAAC concrete played a role in the size of this repair bill
+at your trust?</strong></p>
+<p>A: This is caused by our ageing estate and the number of risks that
+can no longer be proactively managed. As mentioned above, this is due to
+changes in building regulations and compliance requirements,
+hyper-inflation within the construction market, pressure on specialist
+resourcing in terms of skill and capacity, as well as our estates being
+pushed to the limit to support clinical activity, priorities and risk.
+To date, no RAAC has been found in the Trust estate.</p>
+<p><strong>Q: What solutions can you put in place before and in order
+for these high-risk repairs can be carried out? How soon can those
+repairs be carried out and what would the impact be on patients for
+those repairs to be carried out eg necessary part-closure of the
+hospital site? What impact would that have on patients? Is that
+something about which you have already made patients aware if and when
+repairs can be scheduled?</strong></p>
+<p>A: “An annual programme of high risk maintenance is proactively
+rolled out across the Trust Estate. Significant consideration is given
+to the operational estate to ensure minimal impact on patient services
+where possible. The estate would benefit from a substantial uplift in
+capital funding to address estate risks and allow for the proactive
+maintenance and upkeep.”</p>
+</div>
+<div
+id="london-north-west-healthcare-nhs-trust-was-among-the-10-trusts-with-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4>LONDON NORTH WEST HEALTHCARE NHS TRUST was among the 10 trusts with
+the largest high-risk repairs backlog in 2022-23 (filtered to general
+acute hospitals only) according to the most recent, published
+figures.</h4>
+<p><strong>A spokesperson for London North West University Healthcare
+NHS Trust answered our questions.</strong></p>
+<p><strong>Q: How has this high-risk repair bill
+accumulated?</strong></p>
+<p>A: “Northwick Park Hospital is now more than fifty years old, while
+Ealing Hospital is approaching fifty. Despite ongoing regular
+maintenance work, the ageing infrastructure on both sites presents a
+significant challenge. In addition, modern healthcare requires
+additional space, higher intensity of use, and a greater level of
+engineering systems, requiring considerably more maintenance than would
+have been the case when the sites were built. We have already invested
+significantly to fix a number of these issues, including building a new
+energy centre at Northwick Park to move away from steam, improving our
+electricity generators for our secondary electricity supply, and
+replacing or upgrading a range of other systems such as fire alarms,
+water systems and medical gas supply mechanisms. However, other complex
+systems, such as ventilation and lifts, continue to need substantial
+work.”</p>
+<p><strong>Q: Have you asked for help with these repairs? If so, from
+whom (eg government) and what was the response?</strong></p>
+<p>A: “We bid for funding support from various sources, including from
+capital funding from NHS England. Modernising and investing in new
+facilities remains one of the most effective ways to reduce this kind of
+backlog, and therefore this year we have already made some substantial
+improvements to critical aspects of our estate, including important
+refurbishment work to our maternity unit and birthing centre, and other
+crucial site developments including the development of the community
+diagnostic centre at Ealing and the acute medical unit at Northwick
+Park.”</p>
+<p><strong>Q: Should patients be concerned to see these figures? What
+would you say to them?</strong></p>
+<p>A: “Our patients can be confident that we monitor any issues
+associated with our sites very closely, and that we anticipate and
+swiftly deal with any issue that could have an immediate impact on our
+ability to provide care. This includes rigorous risk management,
+governance and health and safety processes and reporting, which
+ultimately are overseen by our board of directors.”</p>
+<p><strong>Q: Has the discovery of RAAC concrete played a role in the
+size of this repair bill at your trust?</strong></p>
+<p>A: No.</p>
+<p><strong>Q: What solutions can you put in place before and in order
+for these high-risk repairs can be carried out? How soon can those
+repairs be carried out and what would the impact be on patients for
+those repairs to be carried out eg necessary part-closure of the
+hospital site? What impact would that have on patients?</strong></p>
+<p>A: “We have a long-term plan to address these repairs, but as with
+any older hospital site, maintenance is an ongoing activity that
+requires constant monitoring and updating. We work closely with our
+partner trusts in north west London to minimise any impact on our
+patients and communities and will always seek to minimise disruption to
+our services. This means completing work in a phased and coordinated way
+that allows healthcare to continue. Wherever possible, we align repairs
+with other important improvements to our sites, as we are currently
+doing with the community diagnostic centre at Ealing and hope to do by
+developing a new critical care unit at Northwick Park.”</p>
+</div>
+<div
+id="airedale-nhs-foundation-trust-was-among-the-10-trusts-with-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-as-well-as-being-among-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4>AIREDALE NHS FOUNDATION TRUST was among the 10 trusts with the
+largest high-risk repairs backlog in 2022-23 (filtered to general acute
+hospitals only) as well as being among the 10 trusts with the highest
+percentage increase in the cost of high-risk repairs from 2021-22 to
+2022-23, according to the most recent, published figures.</h4>
+<p><strong>Foluke Ajayi</strong>, Chief Executive of Airedale NHS
+Foundation Trust, said: “Our RAAC risks are well-known, and this figure
+highlights the extent of the work being carried out to address the
+structural issues at Airedale.</p>
+<p>“Being on the New Hospital Programme means that we can now look
+forward to a future in a RAAC-free hospital estate. But in the meantime,
+we continue to take every step possible to maintain safety within the
+building. This includes a comprehensive programme of rolling inspections
+and putting in structural supports and installing structural solutions
+where necessary.”</p>
+</div>
+<div
+id="west-suffolk-nhs-foundation-trust-was-among-the-10-trusts-with-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4>WEST SUFFOLK NHS FOUNDATION TRUST was among the 10 trusts with the
+largest high-risk repairs backlog in 2022-23 (filtered to general acute
+hospitals only) according to the most recent, published figures.</h4>
+<p><strong>Craig Black</strong>, executive director of resources for the
+West Suffolk NHS Foundation Trust, said:</p>
+<p>“The safety of patients, staff, and visitors is our priority and we
+have always followed expert, independent advice when it comes to the
+management of our buildings.</p>
+<p>“Due to our ageing estate and the prevalence of RAAC across much of
+our West Suffolk Hospital site, we have undertaken a large programme of
+remedial works to support our RAAC infrastructure and made improvements
+in areas that include asbestos, ventilation and fire safety.</p>
+<p>“As part of these works, which are well advanced and sit alongside
+general maintenance, we continually address areas of ongoing concern and
+do so as and when further risks are identified.</p>
+<p>“In addition, we are a ‘priority site’ under the Government’s New
+Hospital Programme and are on track to deliver a new healthcare facility
+on Hardwick Manor in Bury St Edmunds by 2030.”</p>
+<p>Background for editors:</p>
+<ul>
+<li>The Trust is well advanced in a programme of remedial works across
+its West Suffolk Hospital estate to mitigate the risks associated with
+RAAC (reinforced autoclaved aerated concrete), which has required
+significant investment. Several safety measures to help manage the site
+are in place including:
+<ul>
+<li>Regular survey and monitoring programme, assessing the condition of
+RAAC planks. Increased surveillance is ongoing until the main hospital
+relocates to a new site.</li>
+<li>If an issue is found, remedial and mitigating work is undertaken
+immediately and short-term, temporary props installed to reinforce the
+plank.</li>
+<li>Substantial additional precautionary measures: as of December 2023,
+88% of RAAC roof planks have precautionary supports in place, the
+majority of these are failsafe roof supports of steel and timber beams –
+a support system being implemented across the hospital</li>
+<li>A specific treatment scheme for wall panels is using zinc anode
+technology to prevent further deterioration; 100% of the RAAC wall
+panels have been treated.</li>
+<li>There have been no plank failures at the West Suffolk Hospital.</li>
+</ul></li>
+<li>To provide additional capacity and minimise disruption to patients
+while the RAAC estate maintenance programmes have been ongoing, the
+Trust designed and commissioned a decant ward.</li>
+<li>The vast majority of the £65.7m repairs backlog is associated with
+the remedial works undertaken to mitigate the risks associated with
+RAAC, for which the Trust has received significant funding from the
+government.</li>
+<li>Due to the ageing estate, the West Suffolk Hospital site’s asbestos
+works have been ongoing for many years and will continue to be a core
+area of work now and in the future. A large amount of the asbestos works
+have come under the Trust’s estates maintenance programme which
+mitigates the risks associated with RAAC.</li>
+<li>Continual remedial works and improvements have been made across the
+estate’s fire safety requirements, which also sit alongside the estates
+maintenance programme which mitigates the risks associated with
+RAAC.</li>
+<li>Much of the current high and significant risk ventilation works are
+anticipated to be completed by summer 2024.</li>
+<li>To Trust carries out a whole estate review every five years (20% of
+the site assessed annually) to determine what it needs to do to maintain
+its land and property to an accessible standard in line with best
+practice. This annual review means the costs attributed to the backlog
+change as works for the following year are identified. Therefore, the
+size of the backlog can increase or decrease between years.</li>
+<li>West Suffolk NHS Foundation Trust is a ‘priority site’ under the
+Government’s New Hospital Programme and is on track to deliver a new
+healthcare facility on Hardwick Manor in Bury St Edmunds by 2030.</li>
+</ul>
+</div>
+<div
+id="oxford-university-hospitals-nhs-foundation-trust-was-among-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4>OXFORD UNIVERSITY HOSPITALS NHS FOUNDATION TRUST was among the 10
+trusts with the highest percentage increase in the cost of high-risk
+repairs from 2021-22 to 2022-23, according to the most recent, published
+figures.</h4>
+<p><strong>Mark Holloway</strong>, Chief Officer for Estates and
+Facilities at Oxford University Hospitals NHS Foundation Trust, said:
+“Here at OUH, we are one of the largest Trusts in the country and have
+four hospital sites, as well as other satellite properties.</p>
+<p>“The uplift at OUH is as a result of a newer, detailed and more
+targeted building condition survey. In terms of RAAC, a very small
+amount was identified at the Churchill Hospital site in Oxford. Whilst
+having established the level of risk, the identified RAAC is currently
+safe and inspected regularly, however the Trust has been successful in
+receiving national RAAC remedial funding and will be removing all
+identified RAAC material from the hospital this year.</p>
+<p>“Patient safety is our number one priority at the Trust, and
+continual investments and improvements in our estate do not compromise
+or impact patient or staff safety. It is our ambition to improve and
+replace our oldest estate and make the best use possible of our more
+modern buildings for the benefit of our patients and staff.”</p>
+<p>Background for editors:</p>
+<ul>
+<li>Our approach to capital investment to reduce backlog maintenance is
+prioritised on a risk-based approach, and we prioritise the areas in
+greatest need.</li>
+</ul>
+</div>
+<div
+id="croydon-health-services-nhs-trust-was-among-the-10-trusts-with-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-and-among-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4>CROYDON HEALTH SERVICES NHS TRUST was among the 10 trusts with the
+largest high-risk repairs backlog in 2022-23 (filtered to general acute
+hospitals only) and among the 10 trusts with the highest percentage
+increase in the cost of high-risk repairs from 2021-22 to 2022-23,
+according to the most recent, published figures.</h4>
+<p><strong>A spokesperson for Croydon Health Services</strong> said: “We
+are working hard to improve our estate to support the delivery of high
+quality care, and through a planned maintenance regime we continuously
+monitor our buildings and infrastructure to ensure these remain safe and
+compliant as possible with the required standards for healthcare
+settings.</p>
+<p>“Our new Estates Strategy, which launched in December 2023, followed
+a deep dive audit that informed the latest NHS ERIC data, and
+established our priorities to tackle the backlog on maintenance and also
+identified how we can further optimise and future proof our estate.”</p>
+</div>
+<div
+id="buckinghamshire-healthcare-nhs-trust-was-among-the-10-trusts-with-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4>BUCKINGHAMSHIRE HEALTHCARE NHS TRUST was among the 10 trusts with
+the largest high-risk repairs backlog in 2022-23 (filtered to general
+acute hospitals only) according to the most recent, published
+figures.</h4>
+<p>It referred us to background on its website, which related to the age
+of its buildings and the cost of the continual upkeep of the tower at
+Wycombe Hospital: <a
+href="https://www.buckshealthcare.nhs.uk/our-organisation/where-your-care-is-delivered/"
+class="uri">https://www.buckshealthcare.nhs.uk/our-organisation/where-your-care-is-delivered/</a></p>
+</div>
+<div
+id="homerton-university-hospital-nhs-foundation-trust-was-among-the-10-trusts-with-the-largest-high-risk-repairs-backlog-in-2022-23-filtered-to-general-acute-hospitals-only-and-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23."
+class="section level4">
+<h4>HOMERTON UNIVERSITY HOSPITAL NHS FOUNDATION TRUST was among the 10
+trusts with the largest high-risk repairs backlog in 2022-23 (filtered
+to general acute hospitals only) and the 10 trusts with the highest
+percentage increase in the cost of high-risk repairs from 2021-22 to
+2022-23.</h4>
+<p><strong>A spokesperson for Homerton Healthcare Foundation
+Trust</strong> said: “The vast majority of our hospital buildings and
+community sites are in a sound condition.The Trust has in place the
+appropriate health and safety mitigations to ensure we keep our patients
+and staff safe. Our estates team work very hard to limit interruptions
+to patient care resulting from estates maintenance. The Trust uses a
+risk-based approach to prioritising capital funding, and we are
+developing a comprehensive 10 years estates capital programme. In the
+short term, we are carrying out a number of fire compliance works in
+wards and departments. All maintenance requests are logged and
+prioritised in line with clinical need or risk.”</p>
+</div>
+<div
+id="a-spokesperson-for-university-hospitals-of-derby-and-burton-nhs-foundation-trust-which-was-among-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23-in-its-acute-hospitals-sent-us-the-following-background-for-editors-but-not-to-be-used-as-quotes."
+class="section level4">
+<h4>A spokesperson for UNIVERSITY HOSPITALS OF DERBY AND BURTON NHS
+FOUNDATION TRUST, which was among the 10 trusts with the highest
+percentage increase in the cost of high-risk repairs from 2021-22 to
+2022-23 in its acute hospitals, sent us the following background for
+editors, but not to be used as quotes.</h4>
+<p>Please find below some background information that we hope is helpful
+for factual accuracy in your reporting. Please treat this as background
+rather than for us as quotes from the Trust.</p>
+<ul>
+<li>University Hospitals of Derby and Burton NHS Foundation Trust (UHDB)
+has five sites across two counties, with more than 14,500 staff. From
+analysis we have done, we understand that the figures shared by the BBC
+link to just one of our acute hospital sites, Queen’s Hospital Burton.
+As a whole Trust, our High-Risk backlog maintenance in 22/23 was
+£10,277,970, with £8,942,261 being for the Queen’s Hospital Burton
+site.</li>
+<li>Circa £6m of this Queen’s Hospital Burton backlog relates to work
+around orthopaedic theatres on the site, and a feasibility survey is
+underway to establish the full scope of these works. Patients who need
+orthopaedic care continue to be treated safety while this is
+underway.</li>
+<li>Throughout 23/24, work has already taken place to address nearly
+£1.5 million of high-risk backlog maintenance.</li>
+<li>The year-on-year increase is due to a variety of factors, including
+a formal review by external advisors who have updated figures to reflect
+inflation and risk classification changes for some areas of work.</li>
+<li>We prioritise areas which directly support patient care and clinical
+activity, and conduct the work based on funds available within our
+annual capital allocation. All of our estate is monitored and regularly
+reviewed to ensure it is safe and appropriate for use by staff and
+patients.</li>
+<li>The Trust does not have RAAC in any of its sites. This has been
+additionally verified through an independent survey.</li>
+</ul>
+</div>
+<div
+id="from-a-spokesperson-for-ashford-and-st.-peters-hospitals-nhs-foundation-trust-which-was-among-the-10-trusts-with-the-highest-percentage-increase-in-the-cost-of-high-risk-repairs-from-2021-22-to-2022-23-according-to-the-most-recent-published-figures."
+class="section level4">
+<h4>From a spokesperson for ASHFORD AND ST. PETER’S HOSPITALS NHS
+FOUNDATION TRUST, which was among the 10 trusts with the highest
+percentage increase in the cost of high-risk repairs from 2021-22 to
+2022-23, according to the most recent, published figures.</h4>
+<p><strong>Q: Referring to your trust, can you tell me how this
+high-risk repair bill has accumulated?</strong></p>
+<p>A: The % change is only sizable because of the very low starting
+point from the previous year, and this backlog category for the Trust is
+very low compared in a national perspective.</p>
+<p><strong>Q: Can your trust afford to complete these
+repairs?</strong></p>
+<p>Yes</p>
+<p><strong>Q: Have you asked for help with these repairs? If so, from
+whom (eg government) and what was the response?</strong></p>
+<p>N/A</p>
+<p><strong>Q: Should patients be concerned to see these figures? What
+would you say to them?</strong></p>
+<p>A: The risks in this backlog category are all manageable and will be
+resolved.</p>
+<p><strong>Q: What has caused the repair bill to increase by the
+percentage it has at your trust from 2021-22 to 2022-23 – was that down
+to a survey of your buildings in that time period for example? Has the
+discovery of RAAC concrete played a role in the size of this repair bill
+at your trust?</strong></p>
+<p>A: The figures in this category have been updated following a
+conditions survey but still remain low. ASPH does not have a RAAC
+problem.</p>
+<p><strong>Q: What solutions can you put in place before and in order
+for these high-risk repairs can be carried out?</strong></p>
+<p>A: These repairs are being planned for as part of the capital
+prioritisation planning programme</p>
+<p><strong>Q: How soon can those repairs be carried out and what would
+the impact be on patients for those repairs to be carried out eg
+necessary part-closure of the hospital site? What impact would that have
+on patients? Is that something about which you have already made
+patients aware if and when repairs can be scheduled?</strong></p>
+<p>A: These repairs relate to Estates infrastructure projects that can
+be replaced without closing down critical patient services or affecting
+delivery of patient services.</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
